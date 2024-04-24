@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Permissao {
+  DEV
+  SUP
+  ADM
+  USR
+}
+
+enum Status {
+  Ativo
+  Exonerado
+  Ferias
+  Licenca
+  Transferido
+}
+
+enum SituacaoOcorrencia {
+  Verificado
+  NaoVerificado
+}
+
+model Usuario {
+  id            String       @id @default(uuid())
+  nome          String
+  login         String       @unique
+  email         String       @unique
+  permissao     Permissao    @default(USR)
+  statususuario Status
+  ultimologin   DateTime     @default(now())
+  criadoEm      DateTime     @default(now())
+  atualizadoEm  DateTime     @default(now()) @updatedAt
+  ocorrencia    Ocorrencia[]
+
+  @@map("usuarios")
+}
+
+model Servidor {
+  id           String       @id @default(uuid())
+  nome         String
+  loginrede    String
+  email        String
+  rf           String
+  unidadeatual String
+  unidade      Unidade      @relation(fields: [unidadeatual], references: [id])
+  situacao     Status       @default(Ativo)
+  historico    Historico[]
+  ocorrencia   Ocorrencia[]
+}
+
+model Unidade {
+  id         String       @id @default(uuid())
+  sigla      String
+  nome       String
+  Servidor   Servidor[]
+  mudancaunidadeanterior MudancaUnidade[] @relation(name: "unidadeanterior")
+  mudancaunidadenova     MudancaUnidade[] @relation(name: "unidadenova")
+}
+
+model Historico {
+  id         String   @id @default(uuid())
+  idservidor String
+  servidor   Servidor @relation(fields: [idservidor], references: [id])
+  unidade    String
+  datainicio DateTime @default(now()) @updatedAt
+  datafim    DateTime
+}
+
+model Ocorrencia {
+  id              String             @id @default(uuid())
+  idservidor      String
+  servidor        Servidor           @relation(fields: [idservidor], references: [id])
+  criadoEm        DateTime           @default(now()) @updatedAt
+  tipo            String
+  situacao        SituacaoOcorrencia @default(NaoVerificado)
+  idusuario       String
+  usuario         Usuario            @relation(fields: [idusuario], references: [id])
+  dataverificacao DateTime
+  mudancaunidade MudancaUnidade?
+}
+
+model MudancaUnidade {
+  id                String @id @default(uuid())
+  idocorrencia      String @unique
+  idunidadeanterior String
+  idunidadenova     String
+  unidadeanterior   Unidade @relation(fields: [idunidadeanterior], references: [id], name: "unidadeanterior")
+  unidadenova       Unidade @relation(fields: [idunidadenova], references: [id], name: "unidadenova")
+  ocorrencia        Ocorrencia @relation(fields: [idocorrencia], references: [id])
+}
